@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Luscaa web site Cloner</title>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    background: radial-gradient(circle at top, #1a1d27, #0b0d11 60%);
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, #00d4ff, #7f5bff);
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.glass {
+    backdrop-filter: blur(18px);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 22px;
+    margin: auto;
+    width: 94%;
+    box-shadow: 0 0 30px #000a;
+}
+
+input {
+    width: 88%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    outline: none;
+    font-size: 17px;
+}
+
+button {
+    margin-top: 15px;
+    padding: 14px 35px;
+    background: linear-gradient(90deg, #6a00ff, #00d4ff);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 17px;
+    font-weight: 600;
+    box-shadow: 0 0 15px #0007;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #00d4ff;
+}
+
+.box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 18px;
+    margin-top: 22px;
+    border-radius: 14px;
+    text-align: left;
+}
+
+pre {
+    white-space: pre-wrap;
+    background: #0c0f16;
+    padding: 18px;
+    border-radius: 14px;
+    margin-top: 10px;
+    overflow-x: auto;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Luscaa web site Cloner </h1>
+
+<div class="glass">
+    <input id="url" placeholder="Cole a URL aqui...">
+    <button onclick="cloneSite()">Analisar</button>
+    <button onclick="baixarZipForcado()">Baixar ZIP Completo</button>
+    <div id="output"></div>
+</div>
+
+<script>
+function limparNome(nome) {
+    return nome.replace(/https?:\/\//, "").replace(/www\./, "").split("/")[0];
+}
+
+function detectTech(html) {
+    let techs = [];
+    const checks = [
+        ["WordPress", "wp-content"],
+        ["Elementor", "elementor"],
+        ["WooCommerce", "woocommerce"],
+        ["Shopify", "shopify"],
+        ["React", "react"],
+        ["Next.js", "next"],
+        ["Tailwind CSS", "tailwind"],
+        ["Bootstrap", "bootstrap"],
+        ["Vue.js", "vue"],
+        ["Angular", "angular"],
+        ["jQuery", "jquery"]
+    ];
+
+    for (let [name, key] of checks) {
+        if (html.toLowerCase().includes(key)) techs.push(name);
+    }
+    return techs;
+}
+
+async function cloneSite() {
+    let url = document.getElementById("url").value;
+    let out = document.getElementById("output");
+
+    if (!url) return alert("Cole uma URL!");
+
+    out.innerHTML = "<p>🔍 Analisando...</p>";
+
+    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
+    const html = await res.text();
+
+    let cleanURL = limparNome(url);
+
+    const images = [...html.matchAll(/<img[^>]+src="/g)].length;
+    const scripts = [...html.matchAll(/<script[^>]+src="/g)].length;
+    const css = [...html.matchAll(/<link[^>]+href="[^"]+\.css"/g)].length;
+    const links = [...html.matchAll(/<a[^>]+href="/g)].length;
+
+    const title = (html.match(/<title>(.*?)<\/title>/i) || ["","Sem título"])[1];
+    const desc = (html.match(/<meta name="description" content="(.*?)"/i) || ["","Sem descrição"])[1];
+    const keywords = (html.match(/<meta name="keywords" content="(.*?)"/i) || ["","Nenhuma"])[1];
+    const charset = (html.match(/charset="?([^">]+)"?/i) || ["","Desconhecido"])[1];
+
+    const techs = detectTech(html);
+
+    out.innerHTML = `
+        <div class="box">
+            <h2>📌 Informações Gerais</h2>
+            <p><b>Domínio:</b> ${cleanURL}</p>
+            <p><b>Protocolo:</b> ${url.startsWith("https") ? "HTTPS" : "HTTP"}</p>
+            <p><b>Tamanho da Página:</b> ${(html.length / 1024).toFixed(2)} KB</p>
+            <p><b>Título:</b> ${title}</p>
+            <p><b>Descrição:</b> ${desc}</p>
+            <p><b>Palavras-chave:</b> ${keywords}</p>
+            <p><b>Charset:</b> ${charset}</p>
+        </div>
+
+        <div class="box">
+            <h2>📊 Quantidade</h2>
+            <p>Imagens: ${images}</p>
+            <p>Scripts: ${scripts}</p>
+            <p>CSS: ${css}</p>
+            <p>Links totais: ${links}</p>
+        </div>
+
+        <div class="box">
+            <h2>🧠 Tecnologias Detectadas</h2>
+            <p>${techs.length ? techs.join(", ") : "Nenhuma detectada"}</p>
+        </div>
+
+        <div class="box">
+            <h2>📄 Código Fonte</h2>
+            <button onclick="copyCode()">Copiar</button>
+            <pre id="code">${html.replace(/</g, "&lt;")}</pre>
+        </div>
+    `;
+}
+
+function copyCode() {
+    navigator.clipboard.writeText(document.getElementById("code").innerText);
+    alert("Copiado!");
+}
+
+async function baixarZipForcado() {
+    const zip = new JSZip();
+    const url = document.getElementById("url").value;
+
+    if (!url) return alert("Cole uma URL primeiro!");
+
+    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(url));
+    const html = await res.text();
+
+    zip.file("index.html", html);
+
+    zip.generateAsync({type: "blob"}).then(content => {
+        const nome = limparNome(url);
+        saveAs(content, `${nome} Clonado.zip`);
+    });
+}
+</script>
+
+</body>
+</html>
